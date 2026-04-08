@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Strava CSV</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="dark">
+  <div class="page">
+    <div class="sidebar">
+      <h3>Paramètres</h3>
+
+      <label>
+        <input type="radio" name="mode" value="time" checked>
+        Temps
+      </label>
+
+      <label>
+        <input type="radio" name="mode" value="distance">
+        Distance
+      </label>
+
+      <div id="time-input">
+        <input type="number" id="timeStep" value="10"> sec
+      </div>
+
+      <div id="distance-input" style="display:none;">
+        <input type="number" id="distanceStep" value="100"> m
+      </div>
+
+      <p class="sidebar-signature">Louis Prévost 2026</p>
+    </div>
+
+    <div class="container">
+      <h1>Vos 5 dernières activités :</h1>
+      <ul id="activities-list"></ul>
+      <div id="csv-output"></div>
+    </div>
+  </div>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
