@@ -143,8 +143,31 @@ button:hover {
 }
 
 .sidebar-signature {
-  margin-top: 30px;
+  margin: 30px 0px;
   font-size: 13px;
   color: #a9a9a9;
   text-align: center;
+}
+
+.link {
+  font-size: 13px;
+  color: #a9a9a9;
+  text-align: center;
+}
+
+a {
+  text-decoration: none;
+}
+
+.legal-page .container h2,
+.privacy-page .container h2 {
+  margin-top: 20px;
+  margin-bottom: 8px;
+}
+
+.legal-page .container p,
+.privacy-page .container p {
+  margin-bottom: 12px;
+  line-height: 1.6;
+  color: var(--text-dark);
 }
