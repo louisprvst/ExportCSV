@@ -1,6 +1,6 @@
 const csvOutput = document.getElementById('csv-output');
 
-// Choix du mode (temps ou distance)
+// Choix du mode (laps, temps ou distance)
 const timeInput = document.getElementById('time-input');
 const distanceInput = document.getElementById('distance-input');
 
@@ -9,9 +9,12 @@ document.querySelectorAll('input[name="mode"]').forEach(radio => {
     if (radio.value === 'time') {
       timeInput.style.display = 'block';
       distanceInput.style.display = 'none';
-    } else {
+    } else if (radio.value === 'distance') {
       timeInput.style.display = 'none';
       distanceInput.style.display = 'block';
+    } else if (radio.value === 'laps') {
+      timeInput.style.display = 'none';
+      distanceInput.style.display = 'none';
     }
   });
 });

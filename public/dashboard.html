@@ -15,7 +15,12 @@
       <h3>Paramètres</h3>
 
       <label>
-        <input type="radio" name="mode" value="time" checked>
+        <input type="radio" name="mode" value="laps" checked>
+        Laps
+      </label>
+
+      <label>
+        <input type="radio" name="mode" value="time">
         Temps
       </label>
 
@@ -24,7 +29,7 @@
         Distance
       </label>
 
-      <div id="time-input">
+      <div id="time-input" style="display:none;">
         <input type="number" id="timeStep" value="10"> sec
       </div>
 

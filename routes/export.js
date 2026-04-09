@@ -294,6 +294,37 @@ router.get('/:id', async (req, res) => {
       }
     }
 
+    // MODE LAPS
+    if (mode === 'laps') {
+      try {
+        const lapsRes = await axios.get(
+          `https://www.strava.com/api/v3/activities/${activityId}/laps`,
+          {
+            headers: { Authorization: `Bearer ${token}` }
+          }
+        );
+
+        const laps = lapsRes.data;
+
+        if (!laps || laps.length === 0) {
+          return res.status(400).send('Cette activité n\'a pas de laps');
+        }
+
+        laps.forEach(lap => {
+          rows.push({
+            t: lap.elapsed_time,
+            d: (lap.distance).toFixed(1),
+            hr: lap.average_heartrate ? Math.round(lap.average_heartrate) : '',
+            pace: speedToPace(lap.average_speed)
+          });
+        });
+
+      } catch (err) {
+        console.error(err.response?.data || err.message);
+        return res.status(400).send('Erreur lors de la récupération des laps');
+      }
+    }
+
     // Sécurité si aucun point de données
     if (rows.length === 0) {
       rows.push({
