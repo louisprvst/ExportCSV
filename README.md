@@ -13,6 +13,7 @@ Application web pour se connecter à Strava, consulter ses dernières activités
 - Connexion sécurisée avec Strava.
 - Récupération des activités via l’API Strava.
 - Export CSV avec métadonnées de l’activité.
+- Enrichissement météo via Meteostat (si la clé API est configurée).
 - Deux modes d’extraction :
 	- par temps, avec un pas configurable en secondes,
 	- par distance, avec un pas configurable en mètres.
@@ -33,3 +34,7 @@ Application web pour se connecter à Strava, consulter ses dernières activités
 - Le token d’accès est conservé uniquement dans la session active.
 - Les données sont traitées temporairement pour produire le CSV.
 - Le site n’est pas affilié à Strava.
+
+## Configuration météo
+
+Ajouter une variable d’environnement `METEOSTAT_API_KEY` avec ta clé RapidAPI Meteostat pour activer les colonnes météo dans le CSV.

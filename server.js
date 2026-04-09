@@ -3,8 +3,16 @@ require('dotenv').config();
 
 const express = require('express');
 const session = require('express-session');
+const crypto = require('crypto');
 const app = express();
 const port = process.env.PORT || 3000;
+const isProd = process.env.NODE_ENV === 'production';
+
+const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+
+if (!process.env.SESSION_SECRET) {
+  console.warn('[startup] SESSION_SECRET manquant: secret temporaire utilisé pour cette exécution.');
+}
 
 process.on('uncaughtException', (err) => {
   console.error('[uncaughtException] Exception non gérée — le processus reste actif :', err);
@@ -19,9 +27,14 @@ app.set('trust proxy', 1);
 
 // Session
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'ma-cle-secrete-perso-1234',
+  secret: sessionSecret,
   resave: false,
-  saveUninitialized: true
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: isProd
+  }
 }));
 
 // Fichiers statiques

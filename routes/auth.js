@@ -1,5 +1,6 @@
 const express = require('express');
 const axios = require('axios');
+const crypto = require('crypto');
 const router = express.Router();
 
 const clientId = process.env.STRAVA_CLIENT_ID;
@@ -21,15 +22,28 @@ router.get('/strava', (req, res) => {
   
   const baseUrl = getBaseUrl(req);
   const redirectUri = `${baseUrl}/auth/strava/callback`;
-  const url = `https://www.strava.com/oauth/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&approval_prompt=auto&scope=activity:read_all`;
+
+  const state = crypto.randomBytes(16).toString('hex');
+  req.session.oauthState = state;
+
+  const url = `https://www.strava.com/oauth/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&approval_prompt=auto&scope=activity:read_all&state=${state}`;
   res.redirect(url);
 });
 
 // Callback
 router.get('/strava/callback', async (req, res) => {
   const code = req.query.code;
+  const state = req.query.state;
+  const expectedState = req.session.oauthState;
   const baseUrl = getBaseUrl(req);
   const redirectUri = `${baseUrl}/auth/strava/callback`;
+
+  if (!code || !state || !expectedState || state !== expectedState) {
+    req.session.oauthState = null;
+    return res.status(400).send('OAuth state invalide');
+  }
+
+  req.session.oauthState = null;
 
   try {
     const response = await axios.post('https://www.strava.com/oauth/token', null, {

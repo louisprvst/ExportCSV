@@ -20,6 +20,10 @@ document.querySelectorAll('input[name="mode"]').forEach(radio => {
 async function fetchActivities() {
   try {
     const res = await fetch('/api/activities');
+    if (!res.ok) {
+      throw new Error('Erreur API activités');
+    }
+
     const activities = await res.json();
 
     const list = document.getElementById('activities-list');
@@ -30,11 +34,19 @@ async function fetchActivities() {
 
       const infoDiv = document.createElement('div');
       infoDiv.classList.add('activity-info');
-      infoDiv.innerHTML = `
-        <strong>${act.name}</strong>
-        <span>${act.distance} km</span>
-        <span>${new Date(act.start_date).toLocaleDateString()}</span>
-      `;
+
+      const nameEl = document.createElement('strong');
+      nameEl.textContent = act.name;
+
+      const distanceEl = document.createElement('span');
+      distanceEl.textContent = `${act.distance} km`;
+
+      const dateEl = document.createElement('span');
+      dateEl.textContent = new Date(act.start_date).toLocaleDateString();
+
+      infoDiv.appendChild(nameEl);
+      infoDiv.appendChild(distanceEl);
+      infoDiv.appendChild(dateEl);
 
       const btn = document.createElement('button');
       btn.textContent = 'Exporter CSV';
@@ -54,7 +66,7 @@ async function fetchActivities() {
 // Chargement du CSV
 async function loadCSV(id) {
   try {
-    csvOutput.innerHTML = 'Chargement...';
+    csvOutput.textContent = 'Chargement...';
 
     const mode = document.querySelector('input[name="mode"]:checked').value;
     const timeStep = document.getElementById('timeStep').value;
@@ -64,15 +76,34 @@ async function loadCSV(id) {
       `/export/${id}?mode=${mode}&timeStep=${timeStep}&distanceStep=${distanceStep}`
     );
 
+    if (!res.ok) {
+      throw new Error('Erreur export CSV');
+    }
+
     const csv = await res.text();
 
-    csvOutput.innerHTML = `
-      <div class="csv-actions">
-        <button onclick="copyCSV()">Copier</button>
-        <button onclick="downloadCSV()">Télécharger</button>
-      </div>
-      <pre class="csv-block">${csv}</pre>
-    `;
+    csvOutput.innerHTML = '';
+
+    const actions = document.createElement('div');
+    actions.classList.add('csv-actions');
+
+    const copyBtn = document.createElement('button');
+    copyBtn.textContent = 'Copier';
+    copyBtn.addEventListener('click', copyCSV);
+
+    const downloadBtn = document.createElement('button');
+    downloadBtn.textContent = 'Télécharger';
+    downloadBtn.addEventListener('click', downloadCSV);
+
+    actions.appendChild(copyBtn);
+    actions.appendChild(downloadBtn);
+
+    const pre = document.createElement('pre');
+    pre.classList.add('csv-block');
+    pre.textContent = csv;
+
+    csvOutput.appendChild(actions);
+    csvOutput.appendChild(pre);
 
     csvOutput.dataset.csv = csv;
 
@@ -82,7 +113,7 @@ async function loadCSV(id) {
   } 
   catch (err) {
     console.error(err);
-    csvOutput.innerHTML = 'Erreur chargement CSV';
+    csvOutput.textContent = 'Erreur chargement CSV';
   }
 }
 
