@@ -1,4 +1,5 @@
 const csvOutput = document.getElementById('csv-output');
+const statusMessage = document.getElementById('status-message');
 
 // Choix du mode (laps, temps ou distance)
 const timeInput = document.getElementById('time-input');
@@ -21,9 +22,16 @@ document.querySelectorAll('input[name="mode"]').forEach(radio => {
 
 // Récupération des activités 
 async function fetchActivities() {
+  statusMessage.textContent = 'Chargement des activités...';
+
   try {
     const res = await fetch('/api/activities');
     if (!res.ok) {
+      if (res.status === 401) {
+        window.location.href = '/';
+        return;
+      }
+
       throw new Error('Erreur API activités');
     }
 
@@ -31,6 +39,13 @@ async function fetchActivities() {
 
     const list = document.getElementById('activities-list');
     list.innerHTML = '';
+
+    if (activities.length === 0) {
+      statusMessage.textContent = 'Aucune activité trouvée.';
+      return;
+    }
+
+    statusMessage.textContent = '';
 
     activities.forEach(act => {
       const li = document.createElement('li');
@@ -63,6 +78,7 @@ async function fetchActivities() {
   } 
   catch (err) {
     console.error(err);
+    statusMessage.textContent = 'Impossible de charger les activités.';
   }
 }
 

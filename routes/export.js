@@ -32,42 +32,12 @@ function getUtcDay(date) {
   return new Date(date).toISOString().slice(0, 10);
 }
 
-// Convertit une date au format UTC
-function toUtcHourKey(date) {
-  const d = new Date(date);
-  d.setUTCMinutes(0, 0, 0);
-  return d.toISOString().slice(0, 13) + ':00:00Z';
-}
-
 // Parse les dates Meteostat, en gérant les formats inattendus
 function parseMeteostatTime(pointTime) {
   if (!pointTime) return null;
 
   const parsed = new Date(pointTime.replace(' ', 'T') + 'Z');
   return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-// Garde uniquement le temps de l'activité
-function filterWeatherToActivityWindow(weatherData, activityStart, activityEnd) {
-  if (!Array.isArray(weatherData) || weatherData.length === 0) return [];
-
-  const wantedHours = new Set();
-  const cursor = new Date(activityStart);
-  cursor.setUTCMinutes(0, 0, 0);
-
-  const lastHour = new Date(activityEnd);
-  lastHour.setUTCMinutes(0, 0, 0);
-
-  while (cursor <= lastHour) {
-    wantedHours.add(toUtcHourKey(cursor));
-    cursor.setUTCHours(cursor.getUTCHours() + 1);
-  }
-
-  return weatherData.filter(point => {
-    const pointDate = parseMeteostatTime(point.time);
-    if (!pointDate) return false;
-    return wantedHours.has(toUtcHourKey(pointDate));
-  });
 }
 
 // Utilise le point de départ Strava pour récupérer la météo via Meteostat
@@ -130,46 +100,6 @@ function formatNumber(value, digits = 1) {
   return num.toFixed(digits);
 }
 
-// Résume le retour de l'api pour n'avoir que les infos utiles
-function aggregateWeatherSummary(weatherData) {
-  if (!Array.isArray(weatherData) || weatherData.length === 0) {
-    return {};
-  }
-
-  const temps = [];
-  const wspds = [];
-  const cocoCounts = new Map();
-
-  weatherData.forEach(point => {
-    const temp = Number(point.temp);
-    const wspd = Number(point.wspd);
-    const coco = Number(point.coco);
-
-    if (Number.isFinite(temp)) temps.push(temp);
-    if (Number.isFinite(wspd)) wspds.push(wspd);
-    if (Number.isFinite(coco)) {
-      cocoCounts.set(coco, (cocoCounts.get(coco) || 0) + 1);
-    }
-  });
-
-  const avg = values => values.length ? values.reduce((sum, val) => sum + val, 0) / values.length : '';
-
-  let dominantCoco = '';
-  let dominantCount = 0;
-
-  for (const [code, count] of cocoCounts.entries()) {
-    if (count > dominantCount) {
-      dominantCoco = code;
-      dominantCount = count;
-    }
-  }
-
-  return {
-    weather_temp_c: formatNumber(avg(temps), 1),
-    weather_wspd_kmh: formatNumber(avg(wspds), 1),
-    weather_condition: cocoToLabel(dominantCoco)
-  };
-}
 
 // Récupère les données pour une localisation et une période données
 async function fetchMeteostatHourly({ lat, lon, startDate, endDate }) {
@@ -256,9 +186,18 @@ router.get('/:id', async (req, res) => {
         })
       : [];
 
-    // Donnée météo globale calculée sur les heures de la course.
-    const weatherDataDuringActivity = filterWeatherToActivityWindow(weatherData, activityStart, activityEnd);
-    const weatherSummary = aggregateWeatherSummary(weatherDataDuringActivity);
+    const weatherPoint = weatherData.find(point => {
+      const pointDate = parseMeteostatTime(point.time);
+      if (!pointDate) return false;
+
+      return Math.abs(pointDate - activityStart) < 60 * 60 * 1000;
+    });
+
+    const weatherSummary = {
+      weather_temp_c: formatNumber(weatherPoint?.temp),
+      weather_wspd_kmh: formatNumber(weatherPoint?.wspd),
+      weather_condition: cocoToLabel(weatherPoint?.coco)
+    };
 
     let rows = [];
 
