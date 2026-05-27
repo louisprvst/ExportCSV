@@ -16,21 +16,33 @@ function autoResizeCsvEditor(editor) {
 // Choix du mode (laps, temps ou distance)
 const timeInput = document.getElementById('time-input');
 const distanceInput = document.getElementById('distance-input');
+const lapTypeToggle = document.getElementById('lap-type-toggle');
+const includeLapTypesInput = document.getElementById('includeLapTypes');
+
+function updateModeInputs(mode) {
+  if (mode === 'time') {
+    timeInput.style.display = 'block';
+    distanceInput.style.display = 'none';
+    lapTypeToggle.style.display = 'none';
+  } else if (mode === 'distance') {
+    timeInput.style.display = 'none';
+    distanceInput.style.display = 'block';
+    lapTypeToggle.style.display = 'none';
+  } else {
+    timeInput.style.display = 'none';
+    distanceInput.style.display = 'none';
+    lapTypeToggle.style.display = 'block';
+  }
+}
 
 document.querySelectorAll('input[name="mode"]').forEach(radio => {
   radio.addEventListener('change', () => {
-    if (radio.value === 'time') {
-      timeInput.style.display = 'block';
-      distanceInput.style.display = 'none';
-    } else if (radio.value === 'distance') {
-      timeInput.style.display = 'none';
-      distanceInput.style.display = 'block';
-    } else if (radio.value === 'laps') {
-      timeInput.style.display = 'none';
-      distanceInput.style.display = 'none';
-    }
+    updateModeInputs(radio.value);
   });
 });
+
+const currentMode = document.querySelector('input[name="mode"]:checked')?.value || 'laps';
+updateModeInputs(currentMode);
 
 // Récupération des activités 
 async function fetchActivities() {
@@ -102,9 +114,10 @@ async function loadCSV(id) {
     const mode = document.querySelector('input[name="mode"]:checked').value;
     const timeStep = document.getElementById('timeStep').value;
     const distanceStep = document.getElementById('distanceStep').value;
+    const includeLapTypes = includeLapTypesInput.checked;
 
     const res = await fetch(
-      `/export/${id}?mode=${mode}&timeStep=${timeStep}&distanceStep=${distanceStep}`
+      `/export/${id}?mode=${mode}&timeStep=${timeStep}&distanceStep=${distanceStep}&includeLapTypes=${includeLapTypes}`
     );
 
     if (!res.ok) {

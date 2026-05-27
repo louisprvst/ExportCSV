@@ -1,8 +1,11 @@
 const express = require('express');
 const axios = require('axios');
 const router = express.Router();
+const { getWeatherSummaryForActivity } = require('../services/weather');
 
-const METEOSTAT_API_KEY = process.env.METEOSTAT_API_KEY;
+//--------------------------------------------------------------------
+// Utilitaires generaux
+//--------------------------------------------------------------------
 
 // Conversion m/s > min/km
 function speedToPace(speed) {
@@ -27,108 +30,67 @@ function csvEscape(value) {
   return str;
 }
 
-// Convertit une date en UTC pour l'API Meteostat
-function getUtcDay(date) {
-  return new Date(date).toISOString().slice(0, 10);
+//--------------------------------------------------------------------
+// Utilitaires type de lap
+//--------------------------------------------------------------------
+
+// Calcule la médiane d'un tableau de nombres
+function median(values) {
+  if (!values.length) return NaN;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 0) {
+    return (sorted[mid - 1] + sorted[mid]) / 2;
+  }
+  return sorted[mid];
 }
 
-// Parse les dates Meteostat, en gérant les formats inattendus
-function parseMeteostatTime(pointTime) {
-  if (!pointTime) return null;
-
-  const parsed = new Date(pointTime.replace(' ', 'T') + 'Z');
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+// Calcule un percentile d'un tableau de nombres
+function percentile(values, p) {
+  if (!values.length) return NaN;
+  const sorted = [...values].sort((a, b) => a - b);
+  const idx = (sorted.length - 1) * p;
+  const lower = Math.floor(idx);
+  const upper = Math.ceil(idx);
+  if (lower === upper) return sorted[lower];
+  const ratio = idx - lower;
+  return sorted[lower] + (sorted[upper] - sorted[lower]) * ratio;
 }
 
-// Utilise le point de départ Strava pour récupérer la météo via Meteostat
-function getActivityPoint(activity) {
-  if (Array.isArray(activity.start_latlng) && activity.start_latlng.length === 2) {
-    const [lat, lon] = activity.start_latlng;
-    if (Number.isFinite(lat) && Number.isFinite(lon)) {
-      return { lat, lon };
-    }
+// Classe les laps en 3 types
+function inferLapTypesFromMetrics(laps) {
+  const intensities = laps.map(lap => {
+    const speed = Number(lap.average_speed);
+    const hr = Number(lap.average_heartrate);
+    if (Number.isFinite(speed)) return speed;
+    if (Number.isFinite(hr)) return hr / 100;
+    return NaN;
+  });
+
+  const validIntensities = intensities.filter(Number.isFinite);
+  if (validIntensities.length < 2) {
+    return laps.map((_, index) => (index === 0 ? 'warmup' : 'cooldown'));
   }
 
-  return null;
-}
+  const lowBand = percentile(validIntensities, 0.35);
+  const highBand = percentile(validIntensities, 0.70);
+  const fallback = median(validIntensities);
+  const intervalThreshold = Number.isFinite(lowBand) && Number.isFinite(highBand)
+    ? (lowBand + highBand) / 2
+    : fallback;
 
-// Convertit les codes météo de Meteostat en libellés lisibles
-function cocoToLabel(coco) {
-  const code = Number(coco);
-  if (!Number.isFinite(code)) return '';
+  const isFast = intensities.map(v => Number.isFinite(v) && v >= intervalThreshold);
+  const firstIntervalIndex = isFast.findIndex(Boolean);
 
-  const labels = {
-    1: 'Ciel degage',
-    2: 'Partiellement nuageux',
-    3: 'Couvert',
-    4: 'Brume',
-    5: 'Brouillard',
-    6: 'Bruine',
-    7: 'Bruine',
-    8: 'Pluie legere',
-    9: 'Pluie',
-    10: 'Pluie forte',
-    11: 'Averse legere',
-    12: 'Averse',
-    13: 'Averse forte',
-    14: 'Orage',
-    15: 'Orage',
-    16: 'Orage',
-    17: 'Orage',
-    18: 'Neige legere',
-    19: 'Neige',
-    20: 'Neige forte',
-    21: 'Averses de neige',
-    22: 'Averses de neige',
-    23: 'Averses de neige fortes',
-    24: 'Gresil',
-    25: 'Grele legere',
-    26: 'Grele',
-    27: 'Tempete de poussiere',
-    28: 'Tempete de sable',
-    29: 'Brouillard givrant',
-    30: 'Temps variable'
-  };
-
-  return labels[code] || `Code meteo ${code}`;
-}
-
-// Formate un nombre
-function formatNumber(value, digits = 1) {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return '';
-  return num.toFixed(digits);
-}
-
-
-// Récupère les données pour une localisation et une période données
-async function fetchMeteostatHourly({ lat, lon, startDate, endDate }) {
-  // Si la clé n'est pas fournie, l'export continue sans météo.
-  if (!METEOSTAT_API_KEY) return [];
-
-  try {
-    const response = await axios.get('https://meteostat.p.rapidapi.com/point/hourly', {
-      headers: {
-        'x-rapidapi-host': 'meteostat.p.rapidapi.com',
-        'x-rapidapi-key': METEOSTAT_API_KEY
-      },
-      params: {
-        lat,
-        lon,
-        start: startDate,
-        end: endDate,
-        tz: 'UTC',
-        model: 'true',
-        units: 'metric'
-      }
-    });
-
-    return response.data?.data || [];
+  if (firstIntervalIndex === -1) {
+    return laps.map((_, index) => (index === 0 ? 'warmup' : 'cooldown'));
   }
-  catch (err) {
-    console.warn('[meteostat] Impossible de récupérer la météo :', err.response?.data || err.message);
-    return [];
-  }
+
+  return laps.map((_, index) => {
+    if (index < firstIntervalIndex) return 'warmup';
+    if (isFast[index]) return 'intervalle';
+    return 'cooldown';
+  });
 }
 
 //--------------------------------------------------------------------
@@ -145,6 +107,7 @@ router.get('/:id', async (req, res) => {
   const mode = req.query.mode || 'time';
   const timeStep = parseInt(req.query.timeStep) || 10;
   const distanceStep = parseInt(req.query.distanceStep) || 100;
+  const includeLapTypes = req.query.includeLapTypes === 'true';
 
   try {
     // Activité
@@ -173,33 +136,10 @@ router.get('/:id', async (req, res) => {
 
     if (!s.time) return res.send('Pas de données');
 
-    const activityStart = new Date(a.start_date);
-    const activityEnd = new Date(activityStart.getTime() + (a.moving_time || 0) * 1000);
-    const activityPoint = getActivityPoint(a);
-
-    const weatherData = activityPoint
-      ? await fetchMeteostatHourly({
-          lat: activityPoint.lat,
-          lon: activityPoint.lon,
-          startDate: getUtcDay(activityStart),
-          endDate: getUtcDay(activityEnd)
-        })
-      : [];
-
-    const weatherPoint = weatherData.find(point => {
-      const pointDate = parseMeteostatTime(point.time);
-      if (!pointDate) return false;
-
-      return Math.abs(pointDate - activityStart) < 60 * 60 * 1000;
-    });
-
-    const weatherSummary = {
-      weather_temp_c: formatNumber(weatherPoint?.temp),
-      weather_wspd_kmh: formatNumber(weatherPoint?.wspd),
-      weather_condition: cocoToLabel(weatherPoint?.coco)
-    };
+    const weatherSummary = await getWeatherSummaryForActivity(a);
 
     let rows = [];
+    const includeLapTypeColumn = mode === 'laps' && includeLapTypes;
 
     // MODE TEMPS
     if (mode === 'time') {
@@ -249,13 +189,21 @@ router.get('/:id', async (req, res) => {
           return res.status(400).send('Cette activité n\'a pas de laps');
         }
 
-        laps.forEach(lap => {
-          rows.push({
+        const lapTypes = includeLapTypeColumn ? inferLapTypesFromMetrics(laps) : [];
+
+        laps.forEach((lap, index) => {
+          const row = {
             t: lap.elapsed_time,
             d: (lap.distance).toFixed(1),
             hr: lap.average_heartrate ? Math.round(lap.average_heartrate) : '',
             pace: speedToPace(lap.average_speed)
-          });
+          };
+
+          if (includeLapTypeColumn) {
+            row.lap_type = lapTypes[index];
+          }
+
+          rows.push(row);
         });
 
       } catch (err) {
@@ -289,10 +237,18 @@ router.get('/:id', async (req, res) => {
     csv += `weather_condition,${csvEscape(weatherSummary.weather_condition || '')}\n`;
     csv += `\n`;
 
-    csv += `t(s),d(m),hr(bpm),pace(min/km)\n`;
+    if (includeLapTypeColumn) {
+      csv += `lap_type,t(s),d(m),hr(bpm),pace(min/km)\n`;
+    } else {
+      csv += `t(s),d(m),hr(bpm),pace(min/km)\n`;
+    }
 
     rows.forEach(r => {
-      csv += `${csvEscape(r.t)},${csvEscape(r.d)},${csvEscape(r.hr)},${csvEscape(r.pace)}\n`;
+      if (includeLapTypeColumn) {
+        csv += `${csvEscape(r.lap_type || '')},${csvEscape(r.t)},${csvEscape(r.d)},${csvEscape(r.hr)},${csvEscape(r.pace)}\n`;
+      } else {
+        csv += `${csvEscape(r.t)},${csvEscape(r.d)},${csvEscape(r.hr)},${csvEscape(r.pace)}\n`;
+      }
     });
 
     // Limite de taille
