@@ -125,15 +125,32 @@ button:hover {
 
 .page {
   display: flex;
+  align-items: flex-start;
   gap: 20px;
   width: 100%;
   max-width: 900px;
+}
+
+.sidebar-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 200px;
+  flex-shrink: 0;
 }
 
 .sidebar {
   width: 200px;
   background: #1a1a1a;
   padding: 15px;
+  border-radius: 10px;
+  height: fit-content;
+}
+
+.page-footer-meta {
+  width: 200px;
+  padding: 15px;
+  background: #1a1a1a;
   border-radius: 10px;
   height: fit-content;
 }
@@ -182,4 +199,66 @@ a {
   margin-bottom: 12px;
   line-height: 1.6;
   color: var(--text-dark);
+}
+
+.page-footer-meta .sidebar-signature {
+  margin: 0 0 10px;
+}
+
+.page-footer-meta .link {
+  margin: 0 0 6px;
+}
+
+@media (max-width: 768px) {
+  body.dark {
+    padding: 20px 12px;
+  }
+
+  .page {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 500px;
+    gap: 16px;
+  }
+
+  .sidebar-column {
+    display: contents;
+  }
+
+  .sidebar,
+  .page-footer-meta,
+  .container {
+    width: 100%;
+  }
+
+  .sidebar {
+    order: 0;
+  }
+
+  .container {
+    order: 1;
+  }
+
+  .page-footer-meta {
+    order: 2;
+  }
+
+  #activities-list li {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  #activities-list li button {
+    width: 100%;
+  }
+
+  .csv-actions {
+    flex-direction: column;
+  }
+
+  .csv-actions button {
+    width: 100%;
+  }
 }

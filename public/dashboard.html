@@ -11,42 +11,46 @@
 
 <body class="dark">
   <div class="page">
-    <div class="sidebar">
-      <h3>Paramètres</h3>
+    <div class="sidebar-column">
+      <div class="sidebar">
+        <h3>Paramètres</h3>
 
-      <label>
-        <input type="radio" name="mode" value="laps" checked>
-        Laps
-      </label>
+        <label>
+          <input type="radio" name="mode" value="laps" checked>
+          Laps
+        </label>
 
-      <label>
-        <input type="radio" name="mode" value="time">
-        Temps
-      </label>
+        <label>
+          <input type="radio" name="mode" value="time">
+          Temps
+        </label>
 
-      <label>
-        <input type="radio" name="mode" value="distance">
-        Distance
-      </label>
+        <label>
+          <input type="radio" name="mode" value="distance">
+          Distance
+        </label>
 
-      <div id="time-input" style="display:none;">
-        <input type="number" id="timeStep" value="10"> sec
+        <div id="time-input" style="display:none;">
+          <input type="number" id="timeStep" value="10"> sec
+        </div>
+
+        <div id="distance-input" style="display:none;">
+          <input type="number" id="distanceStep" value="100"> m
+        </div>
+
+        <label id="lap-type-toggle" class="lap-type-toggle">
+          <input type="checkbox" id="includeLapTypes">
+          Type de lap ( Beta )
+        </label>
       </div>
 
-      <div id="distance-input" style="display:none;">
-        <input type="number" id="distanceStep" value="100"> m
+      <div class="page-footer-meta">
+        <p class="sidebar-signature">Louis Prévost 2026</p>
+
+        <p class="link"><a href="https://github.com/louisprvst/ExportCSV" target="_blank">Github</a></p>
+        <p class="link"><a href="legal.html" target="_blank">Mentions légales</a></p>
+        <p class="link"><a href="privacy.html" target="_blank">Politique de confidentialité</a></p>
       </div>
-
-      <label id="lap-type-toggle" class="lap-type-toggle">
-        <input type="checkbox" id="includeLapTypes">
-        Type de lap ( Beta )
-      </label>
-
-      <p class="sidebar-signature">Louis Prévost 2026</p>
-
-      <p class="link"><a href="https://github.com/louisprvst/ExportCSV" target="_blank">Github</a></p>
-      <p class="link"><a href="legal.html" target="_blank">Mentions légales</a></p>
-      <p class="link"><a href="privacy.html" target="_blank">Politique de confidentialité</a></p>
     </div>
 
     <div class="container">
