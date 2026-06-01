@@ -23,6 +23,11 @@ router.get('/activities', async (req, res) => {
       }
     );
 
+    if (!Array.isArray(response.data)) {
+      console.error('[api/activities] Unexpected Strava payload:', response.data);
+      return res.status(502).send('Réponse Strava inattendue');
+    }
+
     const activities = response.data.map(act => ({
       id: act.id,
       name: act.name,
@@ -33,8 +38,25 @@ router.get('/activities', async (req, res) => {
     res.json(activities);
 
   } catch (err) {
-    console.error(err.response?.data || err.message);
-    res.status(500).send('Erreur récupération activités');
+    console.error('[api/activities] Strava error status:', err.response?.status);
+    console.error('[api/activities] Strava error data:', err.response?.data || err.message);
+
+    if (!err.response) {
+      return res.status(502).send('Strava est injoignable ou a coupé la connexion');
+    }
+
+    const status = err.response?.status || 500;
+
+    if (status === 401 || status === 403) {
+      req.session.accessToken = null;
+      return res.status(401).send('Session Strava expirée ou invalide');
+    }
+
+    if (status === 429) {
+      return res.status(429).send('Trop de requêtes vers Strava, réessaie plus tard');
+    }
+
+    res.status(status).send(`Erreur récupération activités${status ? ` (Strava ${status})` : ''}`);
   }
 });
 

@@ -15,9 +15,27 @@ Application web pour se connecter à Strava, consulter ses dernières activités
 - Export CSV avec métadonnées de l’activité.
 - Données météo via Meteostat (température, vitesse du vent, condition).
 - Trois modes d'extraction :
-	- **Laps** : par laps Strava,
+	- **Laps** : par laps Strava, avec option d'ajout d'un type de lap calculé automatiquement.
+	  Les types possibles sont : **warmup**, **intervalle** et **cooldown**.
 	- **Temps** : par pas de temps configurable en secondes,
 	- **Distance** : par pas de distance configurable en mètres.
+
+### Type de lap (Beta)
+
+Cette option ajoute une colonne supplémentaire dans l'export CSV lorsque le mode **Laps** est sélectionné.
+Elle classe automatiquement chaque lap selon son intensité pour distinguer l'échauffement, le travail principal et le retour au calme.
+
+**Fonctionnement de l'algorithme :**
+
+L'application ne lit pas un type de lap existant dans Strava : elle l'infère à partir des métriques disponibles sur chaque lap.
+
+1. Elle calcule une valeur d'intensité par lap, en utilisant d'abord la vitesse moyenne, puis la fréquence cardiaque si la vitesse n'est pas disponible.
+2. Elle détermine un seuil de séparation à partir de la répartition des intensités.
+3. Les laps situés avant le premier lap intense sont classés en **warmup**.
+4. Les laps au-dessus du seuil sont classés en **intervalle**.
+5. Les laps restants après les intervalles sont classés en **cooldown**.
+
+Si les données sont insuffisantes, l'application applique une classification simplifiée pour éviter un résultat incohérent.
 
 ## Utilisation
 

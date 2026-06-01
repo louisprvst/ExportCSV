@@ -51,12 +51,14 @@ async function fetchActivities() {
   try {
     const res = await fetch('/api/activities');
     if (!res.ok) {
+      const errorText = await res.text();
+
       if (res.status === 401) {
         window.location.href = '/';
         return;
       }
 
-      throw new Error('Erreur API activités');
+      throw new Error(errorText || `Erreur API activités (${res.status})`);
     }
 
     const activities = await res.json();
@@ -102,7 +104,7 @@ async function fetchActivities() {
   } 
   catch (err) {
     console.error(err);
-    statusMessage.textContent = 'Impossible de charger les activités.';
+    statusMessage.textContent = err?.message || 'Impossible de charger les activités.';
   }
 }
 
